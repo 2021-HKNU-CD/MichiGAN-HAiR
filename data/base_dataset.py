@@ -25,6 +25,7 @@ class BaseDataset(data.Dataset):
     def initialize(self, opt):
         pass
 
+
 def pad_zeros(input, pad_th):
     '''
     :param input: type: PIL Image
@@ -36,26 +37,36 @@ def pad_zeros(input, pad_th):
     if len(size) == 2:
         H, W = size[0], size[1]
         pad_img = np.zeros((H + pad_th, W + pad_th))
-        pad_img[int(pad_th / 2):int(pad_th / 2) + H, int(pad_th / 2):int(pad_th / 2) + W] = img
+        pad_img[int(pad_th / 2):int(pad_th / 2) + H,
+                int(pad_th / 2):int(pad_th / 2) + W] = img
     else:
         H, W, C = size[0], size[1], size[2]
         pad_img = np.zeros((H+pad_th, W+pad_th, C))
-        pad_img[int(pad_th/2):int(pad_th/2)+H, int(pad_th/2):int(pad_th/2)+W, :] = img
+        pad_img[int(pad_th/2):int(pad_th/2)+H,
+                int(pad_th/2):int(pad_th/2)+W, :] = img
     pad_img = np.uint8(pad_img)
     # plt.imshow(pad_img)
     # plt.show()
     return Image.fromarray(pad_img)
 
+
 def single_inference_dataLoad(opt):
     base_dir = opt.data_dir
     subset = opt.subset
-    label_ref_dir = base_dir + '/' + subset + '_labels/' + opt.inference_ref_name + '.png'
-    label_tag_dir = base_dir + '/' + subset + '_labels/' + opt.inference_tag_name + '.png'
-    orient_tag_dir = base_dir + '/' + subset + '_dense_orients/' + opt.inference_tag_name + '_orient_dense.png'
-    orient_ref_dir = base_dir + '/' + subset + '_dense_orients/' + opt.inference_orient_name + '_orient_dense.png'
-    orient_mask_dir = base_dir + '/' + subset + '_labels/' + opt.inference_orient_name + '.png'
-    image_ref_dir = base_dir + '/' + subset + '_images/' + opt.inference_ref_name + '.jpg'
-    image_tag_dir = base_dir + '/' + subset + '_images/' + opt.inference_tag_name + '.jpg'
+    label_ref_dir = base_dir + '/' + subset + \
+        '_labels/' + opt.inference_ref_name + '.png'
+    label_tag_dir = base_dir + '/' + subset + \
+        '_labels/' + opt.inference_tag_name + '.png'
+    orient_tag_dir = base_dir + '/' + subset + '_dense_orients/' + \
+        opt.inference_tag_name + '_orient_dense.png'
+    orient_ref_dir = base_dir + '/' + subset + '_dense_orients/' + \
+        opt.inference_orient_name + '_orient_dense.png'
+    orient_mask_dir = base_dir + '/' + subset + \
+        '_labels/' + opt.inference_orient_name + '.png'
+    image_ref_dir = base_dir + '/' + subset + \
+        '_images/' + opt.inference_ref_name + '.jpg'
+    image_tag_dir = base_dir + '/' + subset + \
+        '_images/' + opt.inference_tag_name + '.jpg'
 
     label_ref = Image.open(label_ref_dir)
     label_tag = Image.open(label_tag_dir)
@@ -65,20 +76,11 @@ def single_inference_dataLoad(opt):
     image_ref = Image.open(image_ref_dir)
     image_tag = Image.open(image_tag_dir)
 
-    # add zeros
-    if opt.add_zeros:
-        label_ref = pad_zeros(label_ref, opt.add_th)
-        label_tag = pad_zeros(label_tag, opt.add_th)
-        orient_mask = pad_zeros(orient_mask, opt.add_th)
-        orient_tag = pad_zeros(orient_tag, opt.add_th)
-        orient_ref = pad_zeros(orient_ref, opt.add_th)
-        image_ref = pad_zeros(image_ref, opt.add_th)
-        image_tag = pad_zeros(image_tag, opt.add_th)
-
     # orient, label = RandomErasure(orient, label)
     # label process
     params = get_params(opt, label_ref.size)
-    transform_label = get_transform(opt, params, method=Image.NEAREST, normalize=False)
+    transform_label = get_transform(
+        opt, params, method=Image.NEAREST, normalize=False)
     label_ref_tensor = transform_label(label_ref) * 255.0
     label_ref_tensor[label_ref_tensor == 255] = opt.label_nc
     label_ref_tensor = torch.unsqueeze(label_ref_tensor, 0)
@@ -104,7 +106,8 @@ def single_inference_dataLoad(opt):
 
     # rgb orientation maps
     if opt.use_ig and not opt.no_orientation:
-        orient_tag_rgb = trans_orient_to_rgb(np.array(orient_ref), np.array(label_tag), np.array(orient_mask))
+        orient_tag_rgb = trans_orient_to_rgb(
+            np.array(orient_ref), np.array(label_tag), np.array(orient_mask))
         orient_rgb_tensor = transform_label(orient_tag_rgb)
         orient_rgb_tensor = torch.unsqueeze(orient_rgb_tensor, 0)
         orient_rgb_tensor = orient_rgb_tensor * label_tag_tensor
@@ -123,7 +126,6 @@ def single_inference_dataLoad(opt):
 
     else:
         hole_tensor = torch.tensor(0)
-
 
     # generate noise
     noise = generate_noise(opt.crop_size, opt.crop_size)
@@ -159,6 +161,7 @@ def single_inference_dataLoad(opt):
             }
     return data
 
+
 def demo_inference_dataLoad(opt, ref_label_dir, tag_label, mask_orient, ref_orient, ref_image, tag_image, orient_stroke=None, mask_stroke=None, mask_hole=None):
     '''
     :param opt:
@@ -183,7 +186,8 @@ def demo_inference_dataLoad(opt, ref_label_dir, tag_label, mask_orient, ref_orie
     # orient, label = RandomErasure(orient, label)
     # label process
     params = get_params(opt, label_ref.size)
-    transform_label = get_transform(opt, params, method=Image.NEAREST, normalize=False)
+    transform_label = get_transform(
+        opt, params, method=Image.NEAREST, normalize=False)
     label_ref_tensor = transform_label(label_ref) * 255.0
     label_ref_tensor[label_ref_tensor == 255] = opt.label_nc
     label_ref_tensor = torch.unsqueeze(label_ref_tensor, 0)
@@ -204,12 +208,12 @@ def demo_inference_dataLoad(opt, ref_label_dir, tag_label, mask_orient, ref_orie
     orient_mask_tensor = torch.unsqueeze(orient_mask_tensor, 0)
 
     # rgb orientation maps
-    orient_tag_rgb = trans_orient_to_rgb(np.array(orient_ref), np.array(label_tag), np.array(orient_mask))
+    orient_tag_rgb = trans_orient_to_rgb(
+        np.array(orient_ref), np.array(label_tag), np.array(orient_mask))
     orient_rgb_tensor = transform_label(orient_tag_rgb)
     orient_rgb_tensor = torch.unsqueeze(orient_rgb_tensor, 0)
     orient_rgb_tensor = orient_rgb_tensor * label_tag_tensor
     orient_rgb_mask = orient_mask_tensor * label_tag_tensor
-
 
     # hole mask
     if mask_hole is None:
@@ -233,10 +237,10 @@ def demo_inference_dataLoad(opt, ref_label_dir, tag_label, mask_orient, ref_orie
     if mask_stroke is not None:
         mask_stroke_img = Image.fromarray(np.uint8(mask_stroke))
         mask_stroke_tensor = transform_label(mask_stroke_img) * 255.0
-        mask_stroke_tensor = torch.unsqueeze(mask_stroke_tensor, 0) * label_tag_tensor
+        mask_stroke_tensor = torch.unsqueeze(
+            mask_stroke_tensor, 0) * label_tag_tensor
     else:
         mask_stroke_tensor = torch.tensor(0)
-
 
     # generate noise
     noise = generate_noise(opt.crop_size, opt.crop_size)
@@ -275,6 +279,7 @@ def demo_inference_dataLoad(opt, ref_label_dir, tag_label, mask_orient, ref_orie
             }
     return data
 
+
 def show_training_data(data):
     noise = data['noise']
     orient_rgb = data['orient_rgb']
@@ -282,20 +287,20 @@ def show_training_data(data):
     image_ref = data['image_ref']
     image_tag = data['image_tag']
     # trans , noise and orient_rgb is range from 0 to 1
-    noise = noise.permute(1,2,0).numpy()
-    orient_rgb = orient_rgb.permute(1,2,0).numpy()
-    hole = hole.permute(1,2,0).numpy()
-    image_ref = (image_ref.permute(1,2,0).numpy() + 1) / 2
+    noise = noise.permute(1, 2, 0).numpy()
+    orient_rgb = orient_rgb.permute(1, 2, 0).numpy()
+    hole = hole.permute(1, 2, 0).numpy()
+    image_ref = (image_ref.permute(1, 2, 0).numpy() + 1) / 2
     image_tag = (image_tag.permute(1, 2, 0).numpy() + 1) / 2
     orient_noise = orient_rgb * (1 - hole) + noise * hole
     # plt
-    plt.subplot(2,2,1)
+    plt.subplot(2, 2, 1)
     plt.imshow(orient_rgb)
-    plt.subplot(2,2,2)
+    plt.subplot(2, 2, 2)
     plt.imshow(orient_noise)
-    plt.subplot(2,2,3)
+    plt.subplot(2, 2, 3)
     plt.imshow(image_ref)
-    plt.subplot(2,2,4)
+    plt.subplot(2, 2, 4)
     plt.imshow(image_tag)
     plt.show()
 
@@ -332,6 +337,7 @@ def RandomErasure(orient, label):
         label_array = Image.fromarray(np.uint8(label_array))
         return orient_array, label_array
 
+
 def generate_hole(mask, orient_mask):
     import math
     H, W = orient_mask.shape
@@ -360,6 +366,7 @@ def generate_hole(mask, orient_mask):
         hole = Image.fromarray(np.uint8(hole_mask)).convert('L')
         return hole
 
+
 def trans_orient_to_rgb(orient, label, orient_label=None):
     import math
     # orient is the dense orient map which ranges from 0 to 255, orient_label is the mask which matches the orient
@@ -369,10 +376,10 @@ def trans_orient_to_rgb(orient, label, orient_label=None):
     orient_rgb = np.zeros((H, W, 3))
     orient_rgb[..., 1] = (np.sin(2 * orient_mask)+1)/2
     orient_rgb[..., 0] = (np.cos(2 * orient_mask)+1)/2
-    orient_rgb[...,2] = 0.5
+    orient_rgb[..., 2] = 0.5
 
     if orient_label is None:
-        orient_rgb *= label[...,np.newaxis]
+        orient_rgb *= label[..., np.newaxis]
         orient_rgb = orient_rgb * 255.0
         orient_rgb = Image.fromarray(np.uint8(orient_rgb)).convert('RGB')
         # orient_rgb.save('./inference_samples/orient_before_trans.png')
@@ -384,16 +391,19 @@ def trans_orient_to_rgb(orient, label, orient_label=None):
         # orient_rgb.save('./inference_samples/orient_before_trans.png')
         return orient_rgb
 
+
 def generate_noise(width, height):
     weight = 1.0
     weightSum = 0.0
     noise = np.zeros((height, width, 3)).astype(np.float32)
     while width >= 8 and height >= 8:
-        noise += cv2.resize(np.random.normal(loc = 0.5, scale = 0.25, size = (int(height), int(width), 3)), dsize = (noise.shape[0], noise.shape[1])) * weight
+        noise += cv2.resize(np.random.normal(loc=0.5, scale=0.25, size=(
+            int(height), int(width), 3)), dsize=(noise.shape[0], noise.shape[1])) * weight
         weightSum += weight
         width //= 2
         height //= 2
     return noise / weightSum
+
 
 def get_params(opt, size):
     w, h = size
@@ -423,27 +433,34 @@ def get_transform(opt, params, method=Image.BICUBIC, normalize=True, toTensor=Tr
         osize = [opt.load_size, opt.load_size]
         transform_list.append(transforms.Resize(osize, interpolation=method))
     elif 'scale_width' in opt.preprocess_mode:
-        transform_list.append(transforms.Lambda(lambda img: __scale_width(img, opt.load_size, method)))
+        transform_list.append(transforms.Lambda(
+            lambda img: __scale_width(img, opt.load_size, method)))
     elif 'scale_shortside' in opt.preprocess_mode:
-        transform_list.append(transforms.Lambda(lambda img: __scale_shortside(img, opt.load_size, method)))
+        transform_list.append(transforms.Lambda(
+            lambda img: __scale_shortside(img, opt.load_size, method)))
 
     if 'crop' in opt.preprocess_mode:
-        transform_list.append(transforms.Lambda(lambda img: __crop(img, params['crop_pos'], opt.crop_size)))
+        transform_list.append(transforms.Lambda(
+            lambda img: __crop(img, params['crop_pos'], opt.crop_size)))
 
     if opt.preprocess_mode == 'none':
         base = 32
-        transform_list.append(transforms.Lambda(lambda img: __make_power_2(img, base, method)))
+        transform_list.append(transforms.Lambda(
+            lambda img: __make_power_2(img, base, method)))
 
     if opt.preprocess_mode == 'fixed':
         w = opt.crop_size
         h = round(opt.crop_size / opt.aspect_ratio)
-        transform_list.append(transforms.Lambda(lambda img: __resize(img, w, h, method)))
+        transform_list.append(transforms.Lambda(
+            lambda img: __resize(img, w, h, method)))
 
     if opt.isTrain and not opt.no_flip:
-        transform_list.append(transforms.Lambda(lambda img: __flip(img, params['flip'])))
+        transform_list.append(transforms.Lambda(
+            lambda img: __flip(img, params['flip'])))
 
     if color:
-        transform_list += [transforms.ColorJitter(brightness=0.1, contrast=0.01, saturation=0.01, hue=0.01)]
+        transform_list += [transforms.ColorJitter(
+            brightness=0.1, contrast=0.01, saturation=0.01, hue=0.01)]
 
     if toTensor:
         transform_list += [transforms.ToTensor()]

@@ -32,34 +32,11 @@ class Pix2PixModel(torch.nn.Module):
         self.netG, self.netD, self.netE, self.netIG, self.netFE, self.netB, self.netD2, self.netSIG = self.initialize_networks(
             opt)
 
-        # set loss functions
-        if opt.isTrain:
-            self.criterionGAN = networks.GANLoss(
-                opt.gan_mode, tensor=self.FloatTensor, opt=self.opt)
-            self.criterionFeat = torch.nn.L1Loss()
-            self.criterionGANFeat = networks.GANFeatLoss(self.opt)
-            if not opt.no_vgg_loss:
-                self.criterionVGG = networks.VGGLoss(self.opt)
-            if opt.use_vae:
-                self.KLDLoss = networks.KLDLoss()
-            if not opt.no_orient_loss:
-                self.criterionOrient = networks.L1OLoss(self.opt)
-
-            self.criterionStyleContent = networks.StyleContentLoss(opt)
-            # the loss of RGB background
-            self.criterionBackground = networks.RGBBackgroundL1Loss()
-
-            self.criterionRGBL1 = nn.L1Loss()
-            self.criterionRGBL2 = nn.MSELoss()
-            self.criterionLabL1 = networks.LabColorLoss(opt)
-
-            if opt.unpairTrain:
-                self.criterionHairAvgLab = networks.HairAvgLabLoss(opt)
-
     # Entry point for all calls involving forward pass
     # of deep networks. We used this approach since DataParallel module
     # can't parallelize custom functions, we branch to different
     # routines based on |mode|.
+
     def forward(self, data, mode):
         if 'ref' in self.opt.inpaint_mode:
             input_ref, input_tag, image_ref, image_tag, orient_mask, hole, orient_rgb, noise = self.preprocess_input(

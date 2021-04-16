@@ -16,33 +16,26 @@ import torch.nn as nn
 import cv2
 from opt import opt
 
-
+opt.inference_orient_name = "99999"
+opt.inference_ref_name = "67172"
+opt.inference_tag_name = "99999"
 model = Pix2PixModel(opt)
 model.eval()
-
-visualizer = Visualizer(opt)
-
-criterionRGBL1 = nn.L1Loss()
-criterionRGBL2 = nn.MSELoss()
-
 # read data
 data = single_inference_dataLoad(opt)
 # forward
+# generated <- generated_fake_image
 generated = model(data, mode='inference')
 img_path = data['path']
 print('process image... %s' % img_path)
 
-# remove background
-if opt.remove_background:
-    generated = generated * \
-        data['label_tag'].float() + data['image_tag'] * \
-        (1 - data['label_tag'].float())
 fake_image = tensor2im(generated[0])
 if opt.add_feat_zeros or opt.add_zeros:
     th = opt.add_th
     H, W = opt.crop_size, opt.crop_size
-    fake_image_tmp = fake_image[int(
-        th/2):int(th/2)+H, int(th/2):int(th/2)+W, :]
+    fake_image_tmp =\
+        fake_image[int(th/2):int(th/2)+H, int(th/2):int(th/2)+W, :]
+    print(len(fake_image))
     fake_image = fake_image_tmp
 
 fake_image_np = fake_image.copy()
