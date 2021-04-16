@@ -29,7 +29,8 @@ class Pix2PixModel(torch.nn.Module):
         self.ByteTensor = torch.cuda.ByteTensor if self.use_gpu() \
             else torch.ByteTensor
 
-        self.netG, self.netD, self.netE, self.netIG, self.netFE, self.netB, self.netD2, self.netSIG = self.initialize_networks(opt)
+        self.netG, self.netD, self.netE, self.netIG, self.netFE, self.netB, self.netD2, self.netSIG = self.initialize_networks(
+            opt)
 
         # set loss functions
         if opt.isTrain:
@@ -43,7 +44,7 @@ class Pix2PixModel(torch.nn.Module):
                 self.KLDLoss = networks.KLDLoss()
             if not opt.no_orient_loss:
                 self.criterionOrient = networks.L1OLoss(self.opt)
-            
+
             self.criterionStyleContent = networks.StyleContentLoss(opt)
             # the loss of RGB background
             self.criterionBackground = networks.RGBBackgroundL1Loss()
@@ -61,9 +62,11 @@ class Pix2PixModel(torch.nn.Module):
     # routines based on |mode|.
     def forward(self, data, mode):
         if 'ref' in self.opt.inpaint_mode:
-            input_ref, input_tag, image_ref, image_tag, orient_mask, hole, orient_rgb, noise = self.preprocess_input(data)
+            input_ref, input_tag, image_ref, image_tag, orient_mask, hole, orient_rgb, noise = self.preprocess_input(
+                data)
         elif 'stroke' in self.opt.inpaint_mode:
-            input_ref, input_tag, image_ref, image_tag, orient_mask, hole, orient_rgb, noise, orient_stroke, mask_stroke, orient_rgb_mask = self.preprocess_input(data)
+            input_ref, input_tag, image_ref, image_tag, orient_mask, hole, orient_rgb, noise, orient_stroke, mask_stroke, orient_rgb_mask = self.preprocess_input(
+                data)
 
         if mode == 'generator':
             # print(orient_mask.type, real_image.type)
@@ -81,13 +84,15 @@ class Pix2PixModel(torch.nn.Module):
             with torch.no_grad():
                 if self.opt.use_ig:
                     hair_mask = torch.unsqueeze(input_tag[:, 1, ...], 1)
-                    inpainted_orient_rgb, inpainted_orient_mask = self.inpainting_orient(hole, orient_rgb, noise, hair_mask)
-                    inpainted_orient_rgb = np.uint8(inpainted_orient_rgb[0,...].permute(1,2,0).cpu().numpy()*255)
+                    inpainted_orient_rgb, inpainted_orient_mask = self.inpainting_orient(
+                        hole, orient_rgb, noise, hair_mask)
+                    inpainted_orient_rgb = np.uint8(
+                        inpainted_orient_rgb[0, ...].permute(1, 2, 0).cpu().numpy()*255)
                     fake_image, _, blend_image = self.generate_fake(input_ref, image_ref,
-                                                       orient_mask=inpainted_orient_mask, input_tag=input_tag, image_tag=image_tag, noise=noise)
+                                                                    orient_mask=inpainted_orient_mask, input_tag=input_tag, image_tag=image_tag, noise=noise)
                 else:
                     fake_image, _, blend_image = self.generate_fake(input_ref, image_ref,
-                                                       orient_mask=orient_mask, input_tag=input_tag, image_tag=image_tag, noise=noise)
+                                                                    orient_mask=orient_mask, input_tag=input_tag, image_tag=image_tag, noise=noise)
             if self.opt.use_blender:
                 return blend_image
             return fake_image
@@ -96,16 +101,20 @@ class Pix2PixModel(torch.nn.Module):
                 if self.opt.use_ig:
                     if 'ref' in self.opt.inpaint_mode:
                         hair_mask = torch.unsqueeze(input_tag[:, 1, ...], 1)
-                        inpainted_orient_rgb, inpainted_orient_mask = self.inpainting_orient(hole, orient_rgb, noise, hair_mask)
-                        inpainted_orient_rgb = np.uint8(inpainted_orient_rgb[0,...].permute(1,2,0).cpu().numpy()*255)
+                        inpainted_orient_rgb, inpainted_orient_mask = self.inpainting_orient(
+                            hole, orient_rgb, noise, hair_mask)
+                        inpainted_orient_rgb = np.uint8(
+                            inpainted_orient_rgb[0, ...].permute(1, 2, 0).cpu().numpy()*255)
                         orient_out = inpainted_orient_rgb.copy()
                         fake_image, _, blend_image = self.generate_fake(input_ref, image_ref,
-                                                           orient_mask=inpainted_orient_mask, input_tag=input_tag, image_tag=image_tag, noise=noise)
+                                                                        orient_mask=inpainted_orient_mask, input_tag=input_tag, image_tag=image_tag, noise=noise)
                     elif 'stroke' in self.opt.inpaint_mode:
                         # for stroke orient inpainting
                         hair_mask = torch.unsqueeze(input_tag[:, 1, ...], 1)
-                        inpainted_orient_rgb, inpainted_orient_mask = self.inpainting_stroke_orient(hole, orient_rgb, noise, hair_mask, orient_stroke, mask_stroke, orient_rgb_mask)
-                        inpainted_orient_rgb = np.uint8(inpainted_orient_rgb[0,...].permute(1,2,0).cpu().numpy()*255)
+                        inpainted_orient_rgb, inpainted_orient_mask = self.inpainting_stroke_orient(
+                            hole, orient_rgb, noise, hair_mask, orient_stroke, mask_stroke, orient_rgb_mask)
+                        inpainted_orient_rgb = np.uint8(
+                            inpainted_orient_rgb[0, ...].permute(1, 2, 0).cpu().numpy()*255)
                         orient_out = inpainted_orient_rgb.copy()
                         fake_image, _, blend_image = self.generate_fake(input_ref, image_ref,
                                                                         orient_mask=inpainted_orient_mask,
@@ -114,7 +123,7 @@ class Pix2PixModel(torch.nn.Module):
                 else:
                     orient_out = None
                     fake_image, _, blend_image = self.generate_fake(input_ref, image_ref,
-                                                       orient_mask=orient_mask, input_tag=input_tag, image_tag=image_tag, noise=noise)
+                                                                    orient_mask=orient_mask, input_tag=input_tag, image_tag=image_tag, noise=noise)
             if self.opt.use_blender:
                 return blend_image, orient_out
             return fake_image, orient_out
@@ -146,7 +155,8 @@ class Pix2PixModel(torch.nn.Module):
 
         if opt.isTrain and opt.unpairTrain:
             D2_params = list(self.netD2.parameters())
-            optimizer_D2 = torch.optim.Adam(D2_params, lr=D_lr, betas=(beta1, beta2))
+            optimizer_D2 = torch.optim.Adam(
+                D2_params, lr=D_lr, betas=(beta1, beta2))
             return optimizer_G, optimizer_D, optimizer_D2
         else:
             return optimizer_G, optimizer_D
@@ -167,39 +177,19 @@ class Pix2PixModel(torch.nn.Module):
 
     def initialize_networks(self, opt):
         netG = networks.define_G(opt)
-        netD = networks.define_D(opt) if opt.isTrain else None
-        netD2 = networks.define_D(opt) if opt.isTrain and opt.unpairTrain else None
-        netE = networks.define_E(opt) if opt.use_vae else None   # this is for original spade network
-        netIG = networks.define_IG(opt) if opt.use_ig else None  # this is the orient inpainting network
-        netSIG = networks.define_SIG(opt) if opt.use_stroke else None # this is the stroke orient inpainting network
-        netFE = networks.define_FE(opt) if opt.use_instance_feat else None # this is the feat encoder from pix2pixHD
-        netB = networks.define_B(opt) if opt.use_blender else None
-
+        # this is the orient inpainting network
+        netIG = networks.define_IG(opt) if opt.use_ig else None
+        netD = netD2 = netE = netSIG = netFE = netB = None
         if not opt.isTrain or opt.continue_train:
             # if the pth exist
             save_filename = '%s_net_%s.pth' % (opt.which_epoch, 'G')
             save_dir = os.path.join(opt.checkpoints_dir, opt.name)
             G_path = os.path.join(save_dir, save_filename)
             if os.path.exists(G_path):
-
                 netG = util.load_network(netG, 'G', opt.which_epoch, opt)
-                if opt.fix_netG:
-                    netG.eval()
-                if opt.use_blender:
-                    netB = util.load_blend_network(netB, 'B', opt.which_epoch, opt)
-                if opt.isTrain:
-                    netD = util.load_network(netD, 'D', opt.which_epoch, opt)
-                    if opt.unpairTrain:
-                        netD2 = util.load_network(netD2, 'D', opt.which_epoch, opt)
-                if opt.use_vae:
-                    netE = util.load_network(netE, 'E', opt.which_epoch, opt)
         if opt.use_ig:
             netIG = util.load_inpainting_network(netIG, opt)
             netIG.eval()
-        if opt.use_stroke:
-            netSIG = util.load_sinpainting_network(netSIG, opt)
-            netSIG.eval()
-
         return netG, netD, netE, netIG, netFE, netB, netD2, netSIG
 
     # preprocess the input, such as moving the tensors to GPUs and
@@ -225,7 +215,6 @@ class Pix2PixModel(torch.nn.Module):
                 data['mask_stroke'] = data['mask_stroke'].cuda()
                 data['orient_rgb_mask'] = data['orient_rgb_mask'].cuda()
 
-
         # create one-hot label map for ref
         label_map = data['label_ref']
         bs, _, h, w = label_map.size()
@@ -249,18 +238,18 @@ class Pix2PixModel(torch.nn.Module):
             input_tag = torch.cat((input_tag, instance_edge_map), dim=1)
 
         if 'stroke' in self.opt.inpaint_mode:
-            return input_ref, input_tag, data['image_ref'], data['image_tag'], data['orient'], data['hole'], data['orient_rgb'], data['noise'], data['orient_stroke'], data['mask_stroke'],data['orient_rgb_mask']
+            return input_ref, input_tag, data['image_ref'], data['image_tag'], data['orient'], data['hole'], data['orient_rgb'], data['noise'], data['orient_stroke'], data['mask_stroke'], data['orient_rgb_mask']
         else:
             return input_ref, input_tag, data['image_ref'], data['image_tag'], data['orient'], data['hole'], data['orient_rgb'], data['noise']
-
 
     def compute_generator_loss(self, input_ref, input_tag, image_ref, image_tag, orient_mask, hole, orient_rgb, noise):
         G_losses = {}
 
         if self.opt.use_ig:
             with torch.no_grad():
-                hair_mask = torch.unsqueeze(input_tag[:,1,...], 1)
-                inpainted_orient_rgb, orient_mask = self.inpainting_orient(hole, orient_rgb, noise, hair_mask)
+                hair_mask = torch.unsqueeze(input_tag[:, 1, ...], 1)
+                inpainted_orient_rgb, orient_mask = self.inpainting_orient(
+                    hole, orient_rgb, noise, hair_mask)
                 orient_mask = orient_mask.detach()
                 orient_mask.requires_grad_()
 
@@ -281,9 +270,9 @@ class Pix2PixModel(torch.nn.Module):
         if not self.opt.no_gan_loss:
             label_tag = torch.unsqueeze(input_tag[:, 1, :, :], 1)
             G_losses['GAN'] = self.criterionGAN(pred_fake, True,
-                                            for_discriminator=False, label=label_tag)
+                                                for_discriminator=False, label=label_tag)
 
-        ref_tag_diff = torch.sum(input_tag[:,1,:,:]-input_ref[:,1,:,:])
+        ref_tag_diff = torch.sum(input_tag[:, 1, :, :]-input_ref[:, 1, :, :])
         ref_tag_diff2 = torch.sum(image_tag - image_ref)
         if ref_tag_diff == 0:
             ref_is_tag = True
@@ -294,25 +283,29 @@ class Pix2PixModel(torch.nn.Module):
             if not self.opt.no_ganFeat_loss:
                 if ref_is_tag:
                     label_tag = torch.unsqueeze(input_tag[:, 1, :, :], 1)
-                    G_losses['GAN_Feat'] = self.criterionGANFeat(pred_fake, pred_real, label_tag)
-
+                    G_losses['GAN_Feat'] = self.criterionGANFeat(
+                        pred_fake, pred_real, label_tag)
 
             # cal vgg loss
             if not self.opt.no_vgg_loss:
                 if ref_is_tag:
                     label_tag = torch.unsqueeze(input_tag[:, 1, :, :], 1)
                     if self.opt.use_blender:
-                        G_losses['VGG'] = self.criterionVGG(blend_image, image_tag, label_tag) * self.opt.lambda_vgg
+                        G_losses['VGG'] = self.criterionVGG(
+                            blend_image, image_tag, label_tag) * self.opt.lambda_vgg
                     else:
-                        G_losses['VGG'] = self.criterionVGG(fake_image, image_tag, label_tag) * self.opt.lambda_vgg
+                        G_losses['VGG'] = self.criterionVGG(
+                            fake_image, image_tag, label_tag) * self.opt.lambda_vgg
 
             # cal style and content loss
             style_label = torch.unsqueeze(input_ref[:, 1, :, :], 1)
             content_label = torch.unsqueeze(input_tag[:, 1, :, :], 1)
             if self.opt.use_blender:
-                loss_c, loss_s = self.criterionStyleContent(blend_image, image_ref, image_tag, style_label, content_label)
+                loss_c, loss_s = self.criterionStyleContent(
+                    blend_image, image_ref, image_tag, style_label, content_label)
             else:
-                loss_c, loss_s = self.criterionStyleContent(fake_image, image_ref, image_tag, style_label, content_label)
+                loss_c, loss_s = self.criterionStyleContent(
+                    fake_image, image_ref, image_tag, style_label, content_label)
             if not self.opt.no_content_loss:
                 G_losses['content'] = loss_c * self.opt.lambda_content
             if not self.opt.no_style_loss:
@@ -320,47 +313,62 @@ class Pix2PixModel(torch.nn.Module):
 
             if not self.opt.no_background_loss and ref_is_tag:
                 if self.opt.use_blender:
-                    background_loss = self.criterionBackground(blend_image, input_tag, image_tag)
+                    background_loss = self.criterionBackground(
+                        blend_image, input_tag, image_tag)
                 else:
-                    background_loss = self.criterionBackground(fake_image, input_tag, image_tag)
-                G_losses['background'] = background_loss * self.opt.lambda_background
+                    background_loss = self.criterionBackground(
+                        fake_image, input_tag, image_tag)
+                G_losses['background'] = background_loss * \
+                    self.opt.lambda_background
 
             if not self.opt.no_rgb_loss and ref_is_tag:
                 if self.opt.use_blender:
-                    rgb_loss = self.criterionRGBL1(blend_image, image_tag.detach())
+                    rgb_loss = self.criterionRGBL1(
+                        blend_image, image_tag.detach())
                 else:
-                    rgb_loss = self.criterionRGBL1(fake_image, image_tag.detach())
+                    rgb_loss = self.criterionRGBL1(
+                        fake_image, image_tag.detach())
                 G_losses['rgb'] = rgb_loss * self.opt.lambda_rgb
 
             if not self.opt.no_lab_loss and ref_is_tag:
                 if self.opt.use_blender:
-                    lab_loss = self.criterionLabL1(blend_image, image_tag.detach(), torch.unsqueeze(input_tag[:, 1, :, :], 1))
+                    lab_loss = self.criterionLabL1(
+                        blend_image, image_tag.detach(), torch.unsqueeze(input_tag[:, 1, :, :], 1))
                 else:
-                    lab_loss = self.criterionLabL1(fake_image, image_tag.detach(), torch.unsqueeze(input_tag[:, 1, :, :], 1))
+                    lab_loss = self.criterionLabL1(
+                        fake_image, image_tag.detach(), torch.unsqueeze(input_tag[:, 1, :, :], 1))
                 G_losses['lab'] = lab_loss * self.opt.lambda_lab
 
         # cal orient loss
         if not self.opt.no_orient_loss:
             if self.opt.use_blender:
-                G_losses['ORIENT'], confidence_loss = self.criterionOrient(blend_image, orient_mask, input_tag)
+                G_losses['ORIENT'], confidence_loss = self.criterionOrient(
+                    blend_image, orient_mask, input_tag)
             else:
-                G_losses['ORIENT'], confidence_loss = self.criterionOrient(fake_image, orient_mask, input_tag)
+                G_losses['ORIENT'], confidence_loss = self.criterionOrient(
+                    fake_image, orient_mask, input_tag)
             G_losses['ORIENT'] = G_losses['ORIENT'] * self.opt.lambda_orient
             if not self.opt.no_confidence_loss:
-                G_losses['CONFIDENCE'] = confidence_loss * self.opt.lambda_confidence
+                G_losses['CONFIDENCE'] = confidence_loss * \
+                    self.opt.lambda_confidence
 
         if self.opt.unpairTrain and self.opt.curr_step == 2:
             if self.opt.use_blender:
-                hair_avg_lab_loss = self.criterionHairAvgLab(blend_image, fake_image.detach(), torch.unsqueeze(input_tag[:,1,:,:], 1), torch.unsqueeze(input_tag[:,1,:,:], 1))
+                hair_avg_lab_loss = self.criterionHairAvgLab(blend_image, fake_image.detach(
+                ), torch.unsqueeze(input_tag[:, 1, :, :], 1), torch.unsqueeze(input_tag[:, 1, :, :], 1))
             else:
                 hair_avg_lab_loss = self.criterionHairAvgLab(fake_image, image_ref, torch.unsqueeze(input_tag[:, 1, :, :], 1),
-                                                             torch.unsqueeze(input_ref[:,1,:,:], 1))
-            G_losses['hairAvgLab'] = hair_avg_lab_loss * self.opt.lambda_hairavglab
+                                                             torch.unsqueeze(input_ref[:, 1, :, :], 1))
+            G_losses['hairAvgLab'] = hair_avg_lab_loss * \
+                self.opt.lambda_hairavglab
             if self.opt.use_blender:
-                background_loss = self.criterionBackground(blend_image, input_tag, image_tag)
+                background_loss = self.criterionBackground(
+                    blend_image, input_tag, image_tag)
             else:
-                background_loss = self.criterionBackground(fake_image, input_tag, image_tag)
-            G_losses['background'] = background_loss * self.opt.lambda_background
+                background_loss = self.criterionBackground(
+                    fake_image, input_tag, image_tag)
+            G_losses['background'] = background_loss * \
+                self.opt.lambda_background
 
         return G_losses, fake_image
 
@@ -369,12 +377,13 @@ class Pix2PixModel(torch.nn.Module):
         with torch.no_grad():
             if self.opt.use_ig:
                 hair_mask = torch.unsqueeze(input_tag[:, 1, ...], 1)
-                inpainted_orient_rgb, orient_mask = self.inpainting_orient(hole, orient_rgb, noise, hair_mask)
+                inpainted_orient_rgb, orient_mask = self.inpainting_orient(
+                    hole, orient_rgb, noise, hair_mask)
                 orient_mask = orient_mask.detach()
                 orient_mask.requires_grad_()
 
             fake_image, _, blend_image = self.generate_fake(input_ref, image_ref, compute_kld_loss=self.opt.use_vae, orient_mask=orient_mask, input_tag=input_tag,
-                                               image_tag=image_tag, noise=noise)
+                                                            image_tag=image_tag, noise=noise)
             fake_image = fake_image.detach()
             fake_image.requires_grad_()
             if self.opt.use_blender:
@@ -402,8 +411,6 @@ class Pix2PixModel(torch.nn.Module):
         z = self.reparameterize(mu, logvar)
         return z, mu, logvar
 
-
-
     def inpainting_orient(self, hole, orient_rgb, noise, mask):
         orient_rgb_hole = orient_rgb * (1 - hole) + noise * hole
         input = torch.cat([orient_rgb_hole, hole], dim=1)
@@ -412,16 +419,18 @@ class Pix2PixModel(torch.nn.Module):
         output = self.netIG(input)
 
         if self.opt.crop_size != 256:
-            output = F.interpolate(output, size=(self.opt.crop_size, self.opt.crop_size), mode='nearest')
-        output = output * hole + orient_rgb * (1 - hole) #[n, 3, h, w], [0, 1]
+            output = F.interpolate(output, size=(
+                self.opt.crop_size, self.opt.crop_size), mode='nearest')
+        output = output * hole + orient_rgb * \
+            (1 - hole)  # [n, 3, h, w], [0, 1]
 
         # trans to orient with one channel
         orient = output.clone()
-        orient = (orient - 0.5) * 2 # [-1, 1]
-        orient = torch.acos(orient[:,0,:,:]) / 2.0 / math.pi * 255.0
+        orient = (orient - 0.5) * 2  # [-1, 1]
+        orient = torch.acos(orient[:, 0, :, :]) / 2.0 / math.pi * 255.0
         orient = torch.round(torch.unsqueeze(orient, dim=1) * mask)
         # trains to new orient with two channel
-        orient2 = (output[:,:-1,:,:]-0.5) * 2
+        orient2 = (output[:, :-1, :, :]-0.5) * 2
         orient = orient2.clone()
         orient[:, 0, :, :] = orient2[:, 1, :, :]
         orient[:, 1, :, :] = orient2[:, 0, :, :]
@@ -433,14 +442,17 @@ class Pix2PixModel(torch.nn.Module):
             print('inpainting first')
             hole0 = mask-mask_orient_rgb
             orient_rgb_0 = orient_rgb * (1 - hole0) + noise * hole0
-            orient_rgb_two_hole = orient_rgb_0 * (1 - hole) + noise * (hole-stroke_mask) + stroke * stroke_mask
+            orient_rgb_two_hole = orient_rgb_0 * \
+                (1 - hole) + noise * (hole-stroke_mask) + stroke * stroke_mask
             # self.save_orient_image(orient_rgb_two_hole, 'input_orient_two_noise.png')
-            orient_rgb_1,_ = self.inpainting_orient(mask-mask_orient_rgb,orient_rgb,noise,mask)
+            orient_rgb_1, _ = self.inpainting_orient(
+                mask-mask_orient_rgb, orient_rgb, noise, mask)
 
         else:
             orient_rgb_1 = orient_rgb.clone()
 
-        orient_rgb_hole = orient_rgb_1 * (1 - hole) + noise * (hole-stroke_mask) + stroke * stroke_mask
+        orient_rgb_hole = orient_rgb_1 * \
+            (1 - hole) + noise * (hole-stroke_mask) + stroke * stroke_mask
         # self.save_orient_image(orient_rgb_hole, 'input_orient_noise.png')
         input = torch.cat([orient_rgb_hole, hole, stroke_mask], dim=1)
         if self.opt.crop_size != 256:
@@ -448,24 +460,26 @@ class Pix2PixModel(torch.nn.Module):
         output = self.netSIG(input)
 
         if self.opt.crop_size != 256:
-            output = F.interpolate(output, size=(self.opt.crop_size, self.opt.crop_size), mode='nearest')
-        output = output * hole + orient_rgb_1 * (1 - hole) #[n, 3, h, w], [0, 1]
+            output = F.interpolate(output, size=(
+                self.opt.crop_size, self.opt.crop_size), mode='nearest')
+        output = output * hole + orient_rgb_1 * \
+            (1 - hole)  # [n, 3, h, w], [0, 1]
         # trans to orient with one channel
         orient = output.clone()
-        orient = (orient - 0.5) * 2 # [-1, 1]
-        orient = torch.acos(orient[:,0,:,:]) / 2.0 / math.pi * 255.0
+        orient = (orient - 0.5) * 2  # [-1, 1]
+        orient = torch.acos(orient[:, 0, :, :]) / 2.0 / math.pi * 255.0
         orient = torch.round(torch.unsqueeze(orient, dim=1) * mask)
         # trains to new orient with two channel
-        orient2 = (output[:,:-1,:,:]-0.5) * 2
+        orient2 = (output[:, :-1, :, :]-0.5) * 2
         orient = orient2.clone()
         orient[:, 0, :, :] = orient2[:, 1, :, :]
         orient[:, 1, :, :] = orient2[:, 0, :, :]
         orient = orient * mask
         return output, orient
 
-    def save_image(self, image,name=None):
-        image_numpy = image[0,...].cpu().numpy()
-        image_numpy = np.transpose(image_numpy, (1, 2, 0)) #[h,w,3]
+    def save_image(self, image, name=None):
+        image_numpy = image[0, ...].cpu().numpy()
+        image_numpy = np.transpose(image_numpy, (1, 2, 0))  # [h,w,3]
         image_numpy = (image_numpy + 1) / 2 * 255.0
         image_pil = Image.fromarray(np.uint8(image_numpy))
         if name is None:
@@ -473,21 +487,21 @@ class Pix2PixModel(torch.nn.Module):
         else:
             image_pil.save('./inference_samples/'+name)
 
-    def save_orient_image(self, image,name=None):
-        image_numpy = image[0,...].cpu().numpy()
-        image_numpy = np.transpose(image_numpy, (1, 2, 0)) #[h,w,3]
+    def save_orient_image(self, image, name=None):
+        image_numpy = image[0, ...].cpu().numpy()
+        image_numpy = np.transpose(image_numpy, (1, 2, 0))  # [h,w,3]
         image_numpy = image_numpy * 255.0
         image_pil = Image.fromarray(np.uint8(image_numpy))
         image_pil.save('./inference_samples/'+name)
 
     def save_blend_input(self, image, image_tag):
-        image_numpy = image[0,...].cpu().numpy()
-        image_numpy = np.transpose(image_numpy, (1, 2, 0)) #[h,w,3]
+        image_numpy = image[0, ...].cpu().numpy()
+        image_numpy = np.transpose(image_numpy, (1, 2, 0))  # [h,w,3]
         image_numpy = (image_numpy + 1) / 2 * 255.0
         image_pil = Image.fromarray(np.uint8(image_numpy))
         image_pil.save('./inference_samples/blend_image_ref.jpg')
-        image_numpy = image_tag[0,...].cpu().numpy()
-        image_numpy = np.transpose(image_numpy, (1, 2, 0)) #[h,w,3]
+        image_numpy = image_tag[0, ...].cpu().numpy()
+        image_numpy = np.transpose(image_numpy, (1, 2, 0))  # [h,w,3]
         image_numpy = (image_numpy + 1) / 2 * 255.0
         image_pil = Image.fromarray(np.uint8(image_numpy))
         image_pil.save('./inference_samples/blend_image_tag.jpg')
@@ -498,9 +512,8 @@ class Pix2PixModel(torch.nn.Module):
         FloatTensor = torch.cuda.FloatTensor if input.is_cuda else torch.FloatTensor
         pad_output = FloatTensor(np.zeros((N, C, H+th, W+th)))
         # print(input.size(), pad_output.size())
-        pad_output[:,:,int(th/2):int(th/2)+H,int(th/2):int(th/2)+W] = input
+        pad_output[:, :, int(th/2):int(th/2)+H, int(th/2):int(th/2)+W] = input
         return pad_output
-
 
     def generate_fake(self, input_ref, image_ref, compute_kld_loss=False, orient_mask=None, input_tag=None, image_tag=None, noise=None):
         z = None
@@ -519,7 +532,8 @@ class Pix2PixModel(torch.nn.Module):
             noise = self.zeros_padding(noise)
 
         if not self.opt.only_blend:
-            fake_image = self.netG(input_ref, z=z, orient_mask=orient_mask, image_ref=image_ref, input_tag=input_tag, noise=noise, image_tag=image_tag)
+            fake_image = self.netG(input_ref, z=z, orient_mask=orient_mask,
+                                   image_ref=image_ref, input_tag=input_tag, noise=noise, image_tag=image_tag)
 
         else:
             fake_image = None
@@ -528,7 +542,8 @@ class Pix2PixModel(torch.nn.Module):
             if self.opt.only_blend:
                 blend_image = self.netB(image_ref, image_tag, input_tag, noise)
             else:
-                blend_image = self.netB(fake_image, image_tag, input_tag, noise)
+                blend_image = self.netB(
+                    fake_image, image_tag, input_tag, noise)
         else:
             blend_image = None
 
@@ -547,8 +562,11 @@ class Pix2PixModel(torch.nn.Module):
         # process the orient mask to sin cos mask
         if not self.opt.use_ig:
             orient_mask = orient_mask / 255.0 * math.pi
-            orient_input = torch.cat([torch.sin(2 * orient_mask), torch.cos(2 * orient_mask)], dim=1)  # [n,2,h,w]
-            orient_input = orient_input * torch.unsqueeze(input_tag[:, 1, :, :], 1)  # hair_mask==seg[:,1,:,:]
+            orient_input = torch.cat(
+                [torch.sin(2 * orient_mask), torch.cos(2 * orient_mask)], dim=1)  # [n,2,h,w]
+            orient_input = orient_input * \
+                torch.unsqueeze(input_tag[:, 1, :, :],
+                                1)  # hair_mask==seg[:,1,:,:]
         else:
             orient_input = orient_mask
         # # remove the background if specified
@@ -595,10 +613,14 @@ class Pix2PixModel(torch.nn.Module):
 
     def get_edges(self, t):
         edge = self.ByteTensor(t.size()).zero_()
-        edge[:, :, :, 1:] = edge[:, :, :, 1:] | (t[:, :, :, 1:] != t[:, :, :, :-1])
-        edge[:, :, :, :-1] = edge[:, :, :, :-1] | (t[:, :, :, 1:] != t[:, :, :, :-1])
-        edge[:, :, 1:, :] = edge[:, :, 1:, :] | (t[:, :, 1:, :] != t[:, :, :-1, :])
-        edge[:, :, :-1, :] = edge[:, :, :-1, :] | (t[:, :, 1:, :] != t[:, :, :-1, :])
+        edge[:, :, :, 1:] = edge[:, :, :, 1:] | (
+            t[:, :, :, 1:] != t[:, :, :, :-1])
+        edge[:, :, :, :-1] = edge[:, :, :, :-
+                                  1] | (t[:, :, :, 1:] != t[:, :, :, :-1])
+        edge[:, :, 1:, :] = edge[:, :, 1:, :] | (
+            t[:, :, 1:, :] != t[:, :, :-1, :])
+        edge[:, :, :-1, :] = edge[:, :, :-1,
+                                  :] | (t[:, :, 1:, :] != t[:, :, :-1, :])
         return edge.float()
 
     def reparameterize(self, mu, logvar):
