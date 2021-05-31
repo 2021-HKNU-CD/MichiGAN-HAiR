@@ -49,6 +49,101 @@ def pad_zeros(input, pad_th):
     # plt.show()
     return Image.fromarray(pad_img)
 
+def HAiR_inference_dataLoad(opt, datas):
+
+    label_ref = datas['label_ref']
+    label_tag = datas['label_tag']
+    orient_mask = datas['orient_mask']
+    orient_tag = datas['orient_tag']
+    orient_ref = datas['orient_ref']
+    image_ref = datas['image_ref']
+    image_tag = datas['image_tag']
+
+    # orient, label = RandomErasure(orient, label)
+    # label process
+    params = get_params(opt, label_ref.size)
+    transform_label = get_transform(
+        opt, params, method=Image.NEAREST, normalize=False)
+    label_ref_tensor = transform_label(label_ref) * 255.0
+    label_ref_tensor[label_ref_tensor == 255] = opt.label_nc
+    label_ref_tensor = torch.unsqueeze(label_ref_tensor, 0)
+
+    if opt.expand_tag_mask:
+        label_tag_array = np.array(label_tag)
+        di_k = 25
+        dilate_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (di_k, di_k))
+        label_tag_array = cv2.dilate(label_tag_array, dilate_kernel)
+        label_tag = Image.fromarray(np.uint8(label_tag_array)).convert('L')
+
+    label_tag_tensor = transform_label(label_tag) * 255.0
+    label_tag_tensor[label_tag_tensor == 255] = opt.label_nc
+    label_tag_tensor = torch.unsqueeze(label_tag_tensor, 0)
+
+    orient_mask_tensor = transform_label(orient_mask) * 255.0
+    orient_mask_tensor[orient_mask_tensor == 255] = opt.label_nc
+    orient_mask_tensor = torch.unsqueeze(orient_mask_tensor, 0)
+    # if opt.expand_tag_mask:
+    #     k = opt.expand_value
+    #     p = int(k / 2)
+    #     orient_mask_tensor = F.max_pool2d(orient_mask_tensor, kernel_size=k, stride=1, padding=p)
+
+    # rgb orientation maps
+    if opt.use_ig and not opt.no_orientation:
+        orient_tag_rgb = trans_orient_to_rgb(
+            np.array(orient_ref), np.array(label_tag), np.array(orient_mask))
+        orient_rgb_tensor = transform_label(orient_tag_rgb)
+        orient_rgb_tensor = torch.unsqueeze(orient_rgb_tensor, 0)
+        orient_rgb_tensor = orient_rgb_tensor * label_tag_tensor
+    else:
+        orient_rgb_tensor = torch.tensor(0)
+
+    # hole mask
+    if opt.use_ig:
+        if opt.inference_orient_name == opt.inference_tag_name:
+            hole = np.array(label_tag)
+            hole = generate_hole(hole, np.array(orient_mask))
+            hole_tensor = transform_label(hole) * 255.0
+            hole_tensor = torch.unsqueeze(hole_tensor, 0)
+        else:
+            hole_tensor = label_tag_tensor - orient_mask_tensor * label_tag_tensor
+
+    else:
+        hole_tensor = torch.tensor(0)
+
+    # generate noise
+    noise = generate_noise(opt.crop_size, opt.crop_size)
+    noise_tensor = torch.tensor(noise).permute(2, 0, 1)
+    noise_tensor = torch.unsqueeze(noise_tensor, 0)
+
+    image_ref = image_ref.convert('RGB')
+    if opt.color_jitter:
+        transform_image = get_transform(opt, params, color=True)
+    else:
+        transform_image = get_transform(opt, params)
+    image_ref_tensor = transform_image(image_ref)
+    image_ref_tensor = torch.unsqueeze(image_ref_tensor, 0)
+
+    image_tag = image_tag.convert('RGB')
+    transform_image = get_transform(opt, params)
+    image_tag_tensor = transform_image(image_tag)
+    image_tag_tensor = torch.unsqueeze(image_tag_tensor, 0)
+
+    orient_tensor = transform_label(orient_tag) * 255
+    orient_tensor = torch.unsqueeze(orient_tensor, 0)
+
+    data = {'label_ref': label_ref_tensor,
+            'label_tag': label_tag_tensor,
+            'instance': torch.tensor(0),
+            'image_ref': image_ref_tensor,
+            'image_tag': image_tag_tensor,
+            'path': image_tag_dir,
+            'orient': orient_tensor,
+            'hole': hole_tensor,
+            'orient_rgb': orient_rgb_tensor,
+            'noise': noise_tensor
+            }
+    return data
+
 
 def single_inference_dataLoad(opt):
     base_dir = opt.data_dir
