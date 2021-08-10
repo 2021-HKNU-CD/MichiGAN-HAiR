@@ -1,14 +1,13 @@
+import os
 import socket
+import time
 
 import cv2
 import numpy as np
+import torch.cuda
 from PIL import Image
 
 from michigan_driver import Driver
-
-print(cv2.__version__)
-
-
 # https://webnautes.tistory.com/1382
 def recvall(sock: socket, count: int) -> bytes:
     buf = b''
@@ -68,14 +67,19 @@ class SocketDriver(Driver):
                 # save it to dictionary
                 datas[key] = data
 
-            generated: np.ndarray = Driver.process(self, datas)
-            gen_payload: bytes = generated.tostring()
+            gen_payload: bytes = generated.tobytes()
             gen_length: bytes = str(len(gen_payload)).ljust(16).encode()
 
             print(f"sending generated image {gen_length}")
             client_socket.send(gen_length)
             client_socket.send(gen_payload)
 
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-SD = SocketDriver()
+if torch.cuda.is_available():
+    SD = SocketDriver(0)
+else:
+    SD = SocketDriver(-1)
+
 SD.start()
