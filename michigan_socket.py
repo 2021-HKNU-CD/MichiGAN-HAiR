@@ -67,6 +67,7 @@ class SocketDriver(Driver):
                 # save it to dictionary
                 datas[key] = data
 
+            generated: np.ndarray = Driver.process(self, datas)
             gen_payload: bytes = generated.tobytes()
             gen_length: bytes = str(len(gen_payload)).ljust(16).encode()
 
