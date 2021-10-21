@@ -136,7 +136,6 @@ def HAiR_inference_dataLoad(opt, datas):
             'instance': torch.tensor(0),
             'image_ref': image_ref_tensor,
             'image_tag': image_tag_tensor,
-            'path': image_tag_dir,
             'orient': orient_tensor,
             'hole': hole_tensor,
             'orient_rgb': orient_rgb_tensor,
